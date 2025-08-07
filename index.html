@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-100">
+
+    <div id="login-modal" class="modal-backdrop">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-4 text-center">Welcome</h2>
+            <p class="text-center text-gray-600 mb-6">Please enter your name and provide the employee data file to start.</p>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="trainerName" class="block text-sm font-medium text-gray-700">Your Name</label>
+                    <input type="text" id="trainerName" class="mt-1 block w-full p-2 border rounded-lg" required>
+                </div>
+                <div>
+                    <label for="orgaFile" class="block text-sm font-medium text-gray-700">Employee Data (orga.csv)</label>
+                    <input type="file" id="orgaFile" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".csv" required>
+                </div>
+                <p id="login-error" class="text-red-500 text-sm mt-2 h-5"></p>
+                <!-- FIX: Changed button type to "button" and added an ID -->
+                <button type="button" id="login-btn" class="mt-4 w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Continue</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-container" class="flex h-screen hidden">
+        <aside class="w-64 bg-gray-800 text-white flex flex-col">
+            <div class="p-6 text-2xl font-bold border-b border-gray-700">
+                Training Hub
+            </div>
+            <nav class="flex-1 p-4">
+                 <a href="#" id="nav-add" class="sidebar-link flex items-center p-3 rounded-lg mt-2">
+                     <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Add Training
+                </a>
+                 <a href="#" id="nav-planning" class="sidebar-link flex items-center p-3 rounded-lg mt-2">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    Plan Training
+                </a>
+                <a href="#" id="nav-log" class="sidebar-link flex items-center p-3 rounded-lg mt-2">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    Training Log
+                </a>
+                <a href="#" id="nav-dashboard" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Dashboard
+                </a>
+                <a href="#" id="nav-performance" class="sidebar-link flex items-center p-3 rounded-lg mt-2">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Trainer Performance
+                </a>
+                 <a href="#" id="nav-yearly-report" class="sidebar-link flex items-center p-3 rounded-lg mt-2">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H3V9a4 4 0 014-4h1.586a1 1 0 01.707.293l2.828 2.828a1 1 0 001.414 0l2.828-2.828a1 1 0 01.707-.293H17a4 4 0 014 4v2h-2a4 4 0 00-4 4v2M9 17h6"></path></svg>
+                    Yearly Report
+                </a>
+                 <a href="#" id="nav-analysis" class="sidebar-link flex items-center p-3 rounded-lg mt-2">
+                   <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"></path></svg>
+                    Detailed Analysis
+                </a>
+            </nav>
+            <div class="p-4 border-t border-gray-700">
+                <p class="text-sm text-gray-400">Logged in as:</p>
+                <p id="user-display" class="font-semibold"></p>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-6 lg:p-10 overflow-auto">
+            
+            <div id="view-add" class="hidden">
+                <h1 id="form-title" class="text-3xl font-bold text-gray-800 mb-6">Add New Training Record</h1>
+                <div class="bg-white p-8 rounded-xl shadow-md max-w-2xl mx-auto">
+                    <form id="training-form">
+                        <input type="hidden" id="record-id">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="trainingDate" class="block text-sm font-medium text-gray-700">Training Date</label>
+                                <input type="date" id="trainingDate" class="mt-1 block w-full p-2 border rounded-lg" required>
+                            </div>
+                            <div>
+                                <label for="traineeId" class="block text-sm font-medium text-gray-700">Trainee ID</label>
+                                <input type="number" id="traineeId" class="mt-1 block w-full p-2 border rounded-lg" required>
+                                <p id="traineeNameDisplay" class="text-sm text-gray-500 mt-1 h-5"></p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="trainingType" class="block text-sm font-medium text-gray-700">Training Type</label>
+                                <select id="trainingType" class="mt-1 block w-full p-2 border rounded-lg" required>
+                                    <option value="">Select a type</option>
+                                    <option value="Qualification">Qualification</option>
+                                    <option value="Refreshment">Refreshment</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="process" class="block text-sm font-medium text-gray-700">Process</label>
+                                <input type="text" id="process" class="mt-1 block w-full p-2 border rounded-lg">
+                            </div>
+                            <div id="refreshment-group" class="md:col-span-2 hidden">
+                                <label for="refreshmentType" class="block text-sm font-medium text-gray-700">Refreshment Type</label>
+                                <select id="refreshmentType" class="mt-1 block w-full p-2 border rounded-lg">
+                                    <option value="">Select refreshment type</option>
+                                    <option value="Annual">Annual</option>
+                                    <option value="Sick Leave">Sick Leave</option>
+                                    <option value="Maternity Leave">Maternity Leave</option>
+                                </select>
+                            </div>
+                             <div>
+                                <label for="trainingHours" class="block text-sm font-medium text-gray-700">Number of Hours</label>
+                                <input type="number" step="0.01" id="trainingHours" class="mt-1 block w-full p-2 border rounded-lg" required>
+                            </div>
+                            <div>
+                                <label for="sector" class="block text-sm font-medium text-gray-700">Sector</label>
+                                <select id="sector" class="mt-1 block w-full p-2 border rounded-lg" required>
+                                    <option value="">Select a sector</option>
+                                    <option value="P1">P1</option>
+                                    <option value="P2/P3">P2/P3</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-8 flex justify-end">
+                            <button type="button" id="cancel-edit" class="hidden bg-gray-300 text-gray-800 px-6 py-2 rounded-lg mr-4">Cancel</button>
+                            <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">Save Record</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div id="view-planning" class="hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">Plan a Training Session</h1>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    <div class="lg:col-span-2 bg-white p-8 rounded-xl shadow-md">
+                        <form id="planning-form">
+                            <input type="hidden" id="plan-id">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="planDate" class="block text-sm font-medium text-gray-700">Planned Date</label>
+                                    <input type="date" id="planDate" class="mt-1 block w-full p-2 border rounded-lg" required>
+                                </div>
+                                <div>
+                                    <label for="planTrainer" class="block text-sm font-medium text-gray-700">Assigned Trainer</label>
+                                    <select id="planTrainer" class="mt-1 block w-full p-2 border rounded-lg" required></select>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label for="planTrainees" class="block text-sm font-medium text-gray-700">Trainees</label>
+                                    <div class="multi-select-container">
+                                        <input type="text" id="trainee-search" class="mt-1 block w-full p-2 border rounded-lg" placeholder="Search for trainees...">
+                                        <div id="trainee-dropdown" class="multi-select-dropdown hidden"></div>
+                                    </div>
+                                    <div id="selected-trainees" class="mt-2 flex flex-wrap gap-2"></div>
+                                </div>
+                                <div>
+                                    <label for="planTrainingType" class="block text-sm font-medium text-gray-700">Training Type</label>
+                                    <select id="planTrainingType" class="mt-1 block w-full p-2 border rounded-lg" required>
+                                        <option value="">Select a type</option>
+                                        <option value="Qualification">Qualification</option>
+                                        <option value="Refreshment">Refreshment</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="planProcess" class="block text-sm font-medium text-gray-700">Process</label>
+                                    <input type="text" id="planProcess" class="mt-1 block w-full p-2 border rounded-lg">
+                                </div>
+                                <div id="plan-refreshment-group" class="hidden">
+                                    <label for="planRefreshmentType" class="block text-sm font-medium text-gray-700">Refreshment Type</label>
+                                    <select id="planRefreshmentType" class="mt-1 block w-full p-2 border rounded-lg">
+                                        <option value="">Select refreshment type</option>
+                                        <option value="Annual">Annual</option>
+                                        <option value="Sick Leave">Sick Leave</option>
+                                        <option value="Maternity Leave">Maternity Leave</option>
+                                    </select>
+                                </div>
+                                 <div>
+                                    <label for="planHours" class="block text-sm font-medium text-gray-700">Estimated Hours</label>
+                                    <input type="number" step="0.01" id="planHours" class="mt-1 block w-full p-2 border rounded-lg" required>
+                                </div>
+                                <div>
+                                    <label for="planSector" class="block text-sm font-medium text-gray-700">Sector</label>
+                                    <select id="planSector" class="mt-1 block w-full p-2 border rounded-lg" required>
+                                        <option value="">Select a sector</option>
+                                        <option value="P1">P1</option>
+                                        <option value="P2/P3">P2/P3</option>
+                                    </select>
+                                </div>
+                                 <div>
+                                    <label for="planStatus" class="block text-sm font-medium text-gray-700">Status</label>
+                                    <select id="planStatus" class="mt-1 block w-full p-2 border rounded-lg" required>
+                                        <option value="Planned">Planned</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Canceled">Canceled</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-8 flex justify-end">
+                                <button type="button" id="cancel-plan-edit" class="hidden bg-gray-300 text-gray-800 px-6 py-2 rounded-lg mr-4">Cancel</button>
+                                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">Save Plan</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-1">
+                        <div class="bg-white p-6 rounded-xl shadow-md">
+                            <div id="calendar-container">
+                                <div id="calendar-header" class="flex items-center justify-between mb-4">
+                                    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200">&lt;</button>
+                                    <h2 id="month-year-display" class="text-lg font-semibold"></h2>
+                                    <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200">&gt;</button>
+                                </div>
+                                <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center">
+                                    <!-- Day names and dates will be generated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="flex items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gray-800">Planned Sessions</h2>
+                        <button id="clear-calendar-filter" class="hidden ml-4 text-sm text-indigo-600 hover:underline">Clear filter</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-sm">
+                                <tr>
+                                    <th class="p-3">Date</th>
+                                    <th class="p-3">Trainer</th>
+                                    <th class="p-3">Type</th>
+                                    <th class="p-3">Process</th>
+                                    <th class="p-3">Trainees</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="planned-sessions-table-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-log" class="hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">Training Log</h1>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+                        <input type="text" id="log-search" placeholder="Search..." class="p-2 border rounded-lg lg:col-span-2">
+                        <select id="filter-month" class="p-2 border rounded-lg"><option value="">All Months</option></select>
+                        <select id="filter-week" class="p-2 border rounded-lg"><option value="">All Weeks</option></select>
+                        <select id="filter-type" class="p-2 border rounded-lg"><option value="">All Types</option></select>
+                        <button id="clear-filters" class="bg-gray-300 text-gray-800 p-2 rounded-lg">Clear Filters</button>
+                    </div>
+                     <div class="flex justify-end mb-4">
+                        <button id="import-csv" class="bg-blue-500 text-white px-4 py-2 rounded-lg mr-2">Import CSV</button>
+                        <input type="file" id="import-file" class="hidden" accept=".csv">
+                        <button id="export-csv" class="bg-green-500 text-white px-4 py-2 rounded-lg">Export to CSV</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-sm">
+                                <tr>
+                                    <th class="p-3">Training Date</th>
+                                    <th class="p-3">Trainee's ID</th>
+                                    <th class="p-3">Full Name</th>
+                                    <th class="p-3">Project</th>
+                                    <th class="p-3">Training Type</th>
+                                    <th class="p-3">Process</th>
+                                    <th class="p-3">Refreshment Type</th>
+                                    <th class="p-3">Hours</th>
+                                    <th class="p-3">Sector</th>
+                                    <th class="p-3">Trainer</th>
+                                    <th class="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-table-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="view-dashboard" class="hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">Overall Dashboard</h1>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="kpi-card"><h3 class="text-gray-500 text-sm font-medium">Total Training Hours</h3><p id="kpi-total-hours" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
+                    <div class="kpi-card"><h3 class="text-gray-500 text-sm font-medium">Total Sessions Logged</h3><p id="kpi-total-sessions" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
+                    <div class="kpi-card"><h3 class="text-gray-500 text-sm font-medium">Unique Trainees</h3><p id="kpi-unique-trainees" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
+                    <div class="kpi-card"><h3 class="text-gray-500 text-sm font-medium">Avg. Hours / Trainee</h3><p id="kpi-avg-hours" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="hoursByTypeChart">Export Chart</button><canvas id="hoursByTypeChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="sessionsByMonthChart">Export Chart</button><canvas id="sessionsByMonthChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md lg:col-span-2 chart-container"><button class="chart-export-btn" data-chart="hoursByProjectChart">Export Chart</button><canvas id="hoursByProjectChart"></canvas></div>
+                </div>
+            </div>
+
+            <div id="view-performance" class="hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">Trainer Performance</h1>
+                <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-sm">
+                                <tr>
+                                    <th class="p-3">Trainer</th>
+                                    <th class="p-3">Total Hours</th>
+                                    <th class="p-3">Number of Sessions</th>
+                                    <th class="p-3">Average Hours / Session</th>
+                                </tr>
+                            </thead>
+                            <tbody id="performance-table-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="hoursByTrainerChart">Export Chart</button><canvas id="hoursByTrainerChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="sessionsByTrainerChart">Export Chart</button><canvas id="sessionsByTrainerChart"></canvas></div>
+                </div>
+            </div>
+
+            <div id="view-yearly-report" class="hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800">Yearly Report</h1>
+                    <div class="flex items-center">
+                        <label for="yearly-report-filter" class="text-sm font-medium text-gray-700 mr-2">Select Year:</label>
+                        <select id="yearly-report-filter" class="p-2 border rounded-lg"></select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="kpi-card"><h3 class="text-gray-500 text-sm font-medium">Total Trained Operators</h3><p id="kpi-yr-total-operators" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
+                    <div class="kpi-card"><h3 class="text-gray-500 text-sm font-medium">Total Training Hours</h3><p id="kpi-yr-total-hours" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
+                    <div class="kpi-card"><h3 class="text-gray-500 text-sm font-medium">Qualifications Realised</h3><p id="kpi-yr-qualifications" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
+                    <div class="kpi-card"><h3 class="text-gray-500 text-sm font-medium">Refreshments Realised</h3><p id="kpi-yr-refreshments" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="lg:col-span-1 bg-white p-4 rounded-xl shadow-md table-container" id="yr-operators-table-container"></div>
+                    <div class="lg:col-span-1 bg-white p-4 rounded-xl shadow-md table-container" id="yr-hours-table-container"></div>
+                    <div class="lg:col-span-1 bg-white p-4 rounded-xl shadow-md table-container" id="yr-qualification-table-container"></div>
+                    <div class="lg:col-span-1 bg-white p-4 rounded-xl shadow-md table-container" id="yr-refreshment-table-container"></div>
+                </div>
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="yrOperatorsChart">Export Chart</button><canvas id="yrOperatorsChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="yrHoursChart">Export Chart</button><canvas id="yrHoursChart"></canvas></div>
+                </div>
+            </div>
+            
+            <div id="view-analysis" class="hidden">
+                 <h1 class="text-3xl font-bold text-gray-800 mb-6">Detailed Analysis</h1>
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="weeklyHoursByGenderChart">Export Chart</button><canvas id="weeklyHoursByGenderChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="weeklyHoursByTypeChart">Export Chart</button><canvas id="weeklyHoursByTypeChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="monthlyHoursByGenderChart">Export Chart</button><canvas id="monthlyHoursByGenderChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="monthlyHoursByTypeChart">Export Chart</button><canvas id="monthlyHoursByTypeChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="refreshmentOverviewChart">Export Chart</button><canvas id="refreshmentOverviewChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="avgHoursByGenderChart">Export Chart</button><canvas id="avgHoursByGenderChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="sessionsByGenderChart">Export Chart</button><canvas id="sessionsByGenderChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md chart-container"><button class="chart-export-btn" data-chart="sessionsByAreaChart">Export Chart</button><canvas id="sessionsByAreaChart"></canvas></div>
+                 </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="confirmation-modal" class="modal-backdrop hidden">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-xl font-bold mb-4" id="modal-title">Confirm Action</h2>
+            <p id="modal-message">Are you sure you want to proceed?</p>
+            <div class="mt-6 flex justify-end">
+                <button id="modal-cancel" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg mr-3">Cancel</button>
+                <button id="modal-confirm" class="bg-red-600 text-white px-4 py-2 rounded-lg">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
